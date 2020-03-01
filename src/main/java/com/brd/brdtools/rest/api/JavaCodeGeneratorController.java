@@ -1,6 +1,6 @@
 package com.brd.brdtools.rest.api;
 
-import com.brd.brdtools.GgenerateClass;
+import com.brd.brdtools.CodeGeneratorClass;
 import com.brd.brdtools.MainProcess;
 import com.brd.brdtools.model.rest.RequestParameter;
 import com.brd.brdtools.report.Report;
@@ -26,7 +26,7 @@ public class JavaCodeGeneratorController {
             final String sql = sqlQuery.replaceAll("\\[|\\]", "").replaceAll("\n", "");
             mainProcess.process(sql);
             final Report report = mainProcess.getReport();
-            String generatedClass = GgenerateClass.generateClass(requestParameter.getBeanName(), report.getResdef().getEntities().get(0));
+            String generatedClass = CodeGeneratorClass.generateClass(requestParameter.getBeanName(), report.getResdef().getEntities().get(0));
             return new ResponseEntity<String>(generatedClass, HttpStatus.OK);
         }
     }

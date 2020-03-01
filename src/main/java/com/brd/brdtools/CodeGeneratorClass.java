@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GgenerateClass {
+public class CodeGeneratorClass {
 
     public static String generateClass(String className, Entity entity) {
         List<Field> fields = entity.getFields();

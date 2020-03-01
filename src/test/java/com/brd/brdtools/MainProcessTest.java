@@ -48,7 +48,7 @@ public class MainProcessTest {
 
 		// Then
 		final Report report = mainProcess.getReport();
-		String generatedClass = GgenerateClass.generateClass("Policy", report.getResdef().getEntities().get(0));
+		String generatedClass = CodeGeneratorClass.generateClass("Policy", report.getResdef().getEntities().get(0));
 		System.out.println(generatedClass);
 		assertEquals(ReportStatus.SUCCESS, report.getReportStatus());
 		assertNotNull(out);
@@ -68,7 +68,7 @@ public class MainProcessTest {
 
 		// Then
 		final Report report = mainProcess.getReport();
-		String generatedClass = GgenerateClass.generateClass("Policy", report.getResdef().getEntities().get(0));
+		String generatedClass = CodeGeneratorClass.generateClass("Policy", report.getResdef().getEntities().get(0));
 		System.out.println(generatedClass);
 		assertEquals(ReportStatus.SUCCESS, report.getReportStatus());
 		assertNotNull(out);
