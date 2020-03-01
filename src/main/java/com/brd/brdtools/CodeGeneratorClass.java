@@ -17,7 +17,7 @@ public class CodeGeneratorClass {
         //Create class from class name
         classStr.append("public class ")
                 .append(className)
-                .append("{\n");
+                .append(" {\n");
 
         //Create fields for class
         for (Field field : fields) {

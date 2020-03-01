@@ -6,7 +6,9 @@ import com.brd.brdtools.report.ReportStatus;
 import com.brd.brdtools.util.Util;
 import javassist.CannotCompileException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,7 +20,7 @@ import static org.junit.Assert.*;
 /**
  * Test : SQL import.
  */
-@SpringBootTest
+@RunWith(SpringRunner.class)
 public class MainProcessTest {
 
 	private MainProcess mainProcess = new MainProcess();
