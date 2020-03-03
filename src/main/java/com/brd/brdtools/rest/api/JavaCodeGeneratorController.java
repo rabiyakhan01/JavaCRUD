@@ -16,7 +16,7 @@ public class JavaCodeGeneratorController {
     @Autowired
     MainProcess mainProcess = null;
 
-    @RequestMapping(path="/code/", produces = "application/json", method = RequestMethod.GET)
+    @RequestMapping(path="/code/", produces = "application/json", consumes = "application/json" ,method = RequestMethod.POST)
     public ResponseEntity<String> getSqlGenerator(@RequestBody RequestParameter requestParameter)
     {
         String sqlQuery= requestParameter.getSqlQuery();
