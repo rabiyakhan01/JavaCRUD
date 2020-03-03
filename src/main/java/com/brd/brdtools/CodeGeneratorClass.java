@@ -10,7 +10,9 @@ import java.util.regex.Pattern;
 
 public class CodeGeneratorClass {
 
-    public static String generateClass(String className, Entity entity) {
+    public static String generateClass(String beanName, boolean isPostgresQueryFormat, Entity entity) {
+        String className = firstLetterInUpperCase(beanName);
+        String dateFormat = isPostgresQueryFormat ? "current_timestamp" : "GETDATE()";
         List<Field> fields = entity.getFields();
         StringBuffer classStr = new StringBuffer();
 
@@ -33,10 +35,10 @@ public class CodeGeneratorClass {
         Field primaryField = fields.remove(0);
 
         //Add Insert Method
-        classStr.append(addMethod(className, entity));
+        classStr.append(insertMethod(className, entity, dateFormat));
 
         //Add Update Method
-        classStr.append(updateMethod(className, entity, primaryField));
+        classStr.append(updateMethod(className, entity, primaryField, dateFormat));
 
         //Add Delete Method
         classStr.append(deleteMethod(className, entity, primaryField));
@@ -51,6 +53,11 @@ public class CodeGeneratorClass {
         return classStr.toString();
     }
 
+    /**
+     * Getting fieldname in camelCase
+     * @param fieldName
+     * @return
+     */
     private static String getFieldName(String fieldName) {
         Matcher m = Pattern.compile("([_][a-z])").matcher(fieldName);
         StringBuffer sb = new StringBuffer();
@@ -61,12 +68,18 @@ public class CodeGeneratorClass {
         return sb.toString();
     }
 
-    private static String addMethod(String className, Entity entity) {
+    /**
+     * Creating insert method for an entity
+     * @param className
+     * @param entity
+     * @return
+     */
+    private static String insertMethod(String className, Entity entity,String dateFormat) {
         StringBuffer method = new StringBuffer();
         method.append("\npublic void add")
                 .append(className)
                 .append("(")
-                .append(className + " " + firstLetterLowerCase(className))
+                .append(className + " " + firstLetterInLowerCase(className))
                 .append(", int creUserNo")
                 .append(") {\n")
                 .append("Connection conn = null;\n")
@@ -78,29 +91,41 @@ public class CodeGeneratorClass {
 
         //insert fields into the insert query
         List<Field> fields = entity.getFields();
-        addFields(method, fields);
-
+        List<String> excludeColumns = Arrays.asList("CONSTRAINT", "upd_dt", "upd_user_no");
+        addFields(method, fields, excludeColumns);
         method.append(") VALUES (");
+
         //insert values into the insert query
         for (Field field : fields) {
             String fieldName = field.getName();
-            if (!Arrays.asList("CONSTRAINT").contains(fieldName)) {
-                method.append("?, ");
+            if (!excludeColumns.contains(fieldName)) {
+                if(fieldName.equals("cre_dt")){
+                    method.append(dateFormat+", ");
+                }else {
+                    method.append("?, ");
+                }
             }
         }
         method.deleteCharAt(method.lastIndexOf(", "));
         method.append(")\"; \n");
-        appendValues(method, className, fields, "add", null);
+        appendValues(method, className, fields, "add", null, excludeColumns);
 
         return method.toString();
     }
 
-    private static String updateMethod(String className, Entity entity, Field primaryField) {
+    /**
+     * Creating update method for an entity
+     * @param className
+     * @param entity
+     * @param primaryField
+     * @return
+     */
+    private static String updateMethod(String className, Entity entity, Field primaryField, String dateFormat) {
         StringBuffer method = new StringBuffer();
         method.append("\npublic void update")
                 .append(className)
                 .append("(")
-                .append(className + " " + firstLetterLowerCase(className))
+                .append(className + " " + firstLetterInLowerCase(className))
                 .append(", int updUserNo")
                 .append(") {\n")
                 .append("Connection conn = null;\n")
@@ -111,20 +136,32 @@ public class CodeGeneratorClass {
                 .append(entity.getName() + " SET ");
 
         //insert fields into the insert query
+        List<String> excludeColumns = Arrays.asList("CONSTRAINT", "cre_dt", "cre_user_no");
         List<Field> fields = entity.getFields();
         for (Field field : fields) {
             String fieldName = field.getName();
-            if (!Arrays.asList("CONSTRAINT").contains(fieldName)) {
-                method.append(fieldName + " = ?, ");
+            if (!excludeColumns.contains(fieldName)) {
+                if(fieldName.equals("upd_dt")){
+                    method.append(fieldName + " ="+dateFormat+", ");
+                }else {
+                    method.append(fieldName + " = ?, ");
+                }
             }
         }
         method.deleteCharAt(method.lastIndexOf(", "));
         method.append("WHERE " + primaryField.getName() + " = ? \"; \n");
-        appendValues(method, className, fields, "update", null);
+        appendValues(method, className, fields, "update", null, excludeColumns);
 
         return method.toString();
     }
 
+    /**
+     * Creating delete method for an entity
+     * @param className
+     * @param entity
+     * @param primaryField
+     * @return
+     */
     private static String deleteMethod(String className, Entity entity, Field primaryField) {
         StringBuffer method = new StringBuffer();
         String fieldName = getFieldName(primaryField.getName());
@@ -140,14 +177,20 @@ public class CodeGeneratorClass {
                 .append(entity.getName() + " ")
                 .append("WHERE " + primaryField.getName() + " = ? \"; \n");
 
-        appendValues(method, className, null, "delete", fieldName);
+        appendValues(method, className, null, "delete", fieldName, null);
 
         return method.toString();
     }
 
+    /**
+     * Creating get list method for an entity
+     * @param className
+     * @param entity
+     * @return
+     */
     private static String getListMethod(String className, Entity entity) {
         StringBuffer method = new StringBuffer();
-        String lowerClassName = firstLetterLowerCase(className);
+        String lowerClassName = firstLetterInLowerCase(className);
         method.append("\npublic List<" + className + ">  getListOf")
                 .append(className)
                 .append("( ) {\n")
@@ -160,7 +203,8 @@ public class CodeGeneratorClass {
 
         //insert fields into the insert query
         List<Field> fields = entity.getFields();
-        addFields(method, fields);
+        List<String> excludeColumns = Arrays.asList("CONSTRAINT");
+        addFields(method, fields, excludeColumns);
 
         method.append("FROM " + entity.getName() + " \"\n");
 
@@ -178,11 +222,11 @@ public class CodeGeneratorClass {
             if (!Arrays.asList("CONSTRAINT").contains(fieldNameStr)) {
                 if (field.getType().equals("Integer")) {
                     method.append(lowerClassName + ".set")
-                            .append(firstLetterUpperCase(getFieldName(fieldNameStr)))
+                            .append(firstLetterInUpperCase(getFieldName(fieldNameStr)))
                             .append("(rs.getInt(" + fieldNameStr + "));\n");
                 } else {
                     method.append(lowerClassName + ".set")
-                            .append(firstLetterUpperCase(getFieldName(fieldNameStr)))
+                            .append(firstLetterInUpperCase(getFieldName(fieldNameStr)))
                             .append("(rs.getString(" + fieldNameStr + ") == null ? \"\" : rs.getString(" + fieldNameStr + "));\n");
                 }
 
@@ -207,7 +251,16 @@ public class CodeGeneratorClass {
         return method.toString();
     }
 
-    private static void appendValues(StringBuffer method, String className, List<Field> fields, String operation, String fieldName) {
+    /**
+     * Generic methods for appending entity values into the query
+     * @param method
+     * @param className
+     * @param fields
+     * @param operation
+     * @param fieldName
+     * @param excludeColumns
+     */
+    private static void appendValues(StringBuffer method, String className, List<Field> fields, String operation, String fieldName, List<String> excludeColumns) {
         method.append("try {\n")
                 .append("conn = this.ds.getConnection();\n")
                 .append("pstmt = conn.prepareStatement(SQL);\n");
@@ -216,11 +269,17 @@ public class CodeGeneratorClass {
         } else {
             for (Field field : fields) {
                 String fieldNameStr = field.getName();
-                if (!Arrays.asList("CONSTRAINT").contains(fieldNameStr)) {
-                    method.append("pstmt.setObject(i++, ")
-                            .append(firstLetterLowerCase(className) + ".get")
-                            .append(firstLetterUpperCase(getFieldName(fieldNameStr)))
-                            .append("());\n");
+                if (!excludeColumns.contains(fieldNameStr)) {
+                    if (fieldNameStr.equals("cre_user_no") && operation.equalsIgnoreCase("add")) {
+                        method.append("pstmt.setObject(i++, creUserNo);\n");
+                    }else if(fieldNameStr.equals("upd_user_no") && operation.equalsIgnoreCase("update")){
+                        method.append("pstmt.setInt(i++, updUserNo);\n");
+                    }else {
+                        method.append("pstmt.setObject(i++, ")
+                                .append(firstLetterInLowerCase(className) + ".get")
+                                .append(firstLetterInUpperCase(getFieldName(fieldNameStr)))
+                                .append("());\n");
+                    }
 
                 }
             }
@@ -239,23 +298,40 @@ public class CodeGeneratorClass {
                 .append("}\n");
     }
 
-    public static void addFields(StringBuffer method, List<Field> fields) {
+
+    /**
+     * Adding columns into the query
+     * @param method
+     * @param fields
+     * @param excludeColumns
+     */
+    public static void addFields(StringBuffer method, List<Field> fields, List<String> excludeColumns) {
         //insert fields into the insert query
         for (Field field : fields) {
             String fieldName = field.getName();
-            if (!Arrays.asList("CONSTRAINT").contains(fieldName)) {
+            if (!excludeColumns.contains(fieldName)) {
                 method.append(fieldName + ", ");
             }
         }
         method.deleteCharAt(method.lastIndexOf(", "));
     }
 
-    public static String firstLetterUpperCase(String str) {
+    /**
+     * Returning string in  First character in upper case letter of string
+     * @param str
+     * @return
+     */
+    public static String firstLetterInUpperCase(String str) {
         if (str == null) return str;
         return str.substring(0, 1).toUpperCase() + str.substring(1);
     }
 
-    public static String firstLetterLowerCase(String str) {
+    /**
+     * Returning string in  First character in lower case letter of string
+     * @param str
+     * @return
+     */
+    public static String firstLetterInLowerCase(String str) {
         if (str == null) return str;
         return str.substring(0, 1).toLowerCase() + str.substring(1);
     }

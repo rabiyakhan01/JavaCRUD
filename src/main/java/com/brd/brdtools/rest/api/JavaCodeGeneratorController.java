@@ -23,10 +23,11 @@ public class JavaCodeGeneratorController {
         if (sqlQuery == null) {
             return new ResponseEntity<String>("Please Enter Valid Query!!!", HttpStatus.BAD_REQUEST);
         }else {
+            boolean isPostgresQueryFormat = sqlQuery.contains("[") ? false : true;
             final String sql = sqlQuery.replaceAll("\\[|\\]", "").replaceAll("\n", "");
             mainProcess.process(sql);
             final Report report = mainProcess.getReport();
-            String generatedClass = CodeGeneratorClass.generateClass(requestParameter.getBeanName(), report.getResdef().getEntities().get(0));
+            String generatedClass = CodeGeneratorClass.generateClass(requestParameter.getBeanName(), isPostgresQueryFormat, report.getResdef().getEntities().get(0));
             return new ResponseEntity<String>(generatedClass, HttpStatus.OK);
         }
     }

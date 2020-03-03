@@ -44,13 +44,14 @@ public class MainProcessTest {
 		final File file = util.getFileByClassPath("/1.sql");
 		final InputStream in = new FileInputStream(file);
 		final String sqlContent = util.read(in);
+		boolean isPostgresQueryFormat = sqlContent.contains("[") ? false : true;
 
 		// When
 		final String out = mainProcess.process(sqlContent);
 
 		// Then
 		final Report report = mainProcess.getReport();
-		String generatedClass = CodeGeneratorClass.generateClass("Policy", report.getResdef().getEntities().get(0));
+		String generatedClass = CodeGeneratorClass.generateClass("Policy", isPostgresQueryFormat, report.getResdef().getEntities().get(0));
 		System.out.println(generatedClass);
 		assertEquals(ReportStatus.SUCCESS, report.getReportStatus());
 		assertNotNull(out);
@@ -63,6 +64,7 @@ public class MainProcessTest {
 		final InputStream in = new FileInputStream(file);
 		final String sqlContent = util.read(in);
 
+		boolean isPostgresQueryFormat = sqlContent.contains("[") ? false : true;
 		final String sql = sqlContent.replaceAll("\\[|\\]", "").replaceAll("\n", "");
 
 		// When
@@ -70,7 +72,7 @@ public class MainProcessTest {
 
 		// Then
 		final Report report = mainProcess.getReport();
-		String generatedClass = CodeGeneratorClass.generateClass("Policy", report.getResdef().getEntities().get(0));
+		String generatedClass = CodeGeneratorClass.generateClass("Policy", isPostgresQueryFormat, report.getResdef().getEntities().get(0));
 		System.out.println(generatedClass);
 		assertEquals(ReportStatus.SUCCESS, report.getReportStatus());
 		assertNotNull(out);
